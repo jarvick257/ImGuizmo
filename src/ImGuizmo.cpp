@@ -1162,11 +1162,11 @@ namespace IMGUIZMO_NAMESPACE
          *value = *value - modulo + snap * ((*value < 0.f) ? -1.f : 1.f);
       }
    }
-   static void ComputeSnap(vec_t& value, const float* snap)
+   static void ComputeSnap(vec_t& value, float snap)
    {
       for (int i = 0; i < 3; i++)
       {
-         ComputeSnap(&value[i], snap[i]);
+         ComputeSnap(&value[i], snap);
       }
    }
 
@@ -2022,7 +2022,7 @@ namespace IMGUIZMO_NAMESPACE
       return type;
    }
 
-   static bool HandleTranslation(float* matrix, float* deltaMatrix, OPERATION op, int& type, const float* snap)
+   static bool HandleTranslation(float* matrix, float* deltaMatrix, OPERATION op, int& type, float snap = 0.0f)
    {
       if(!Intersects(op, TRANSLATE) || type != MT_NONE)
       {
@@ -2054,7 +2054,7 @@ namespace IMGUIZMO_NAMESPACE
          }
 
          // snap
-         if (snap)
+         if (snap > 0.0f)
          {
             vec_t cumulativeDelta = gContext.mModel.v.position + delta - gContext.mMatrixOrigin;
             if (applyRotationLocaly)
@@ -2136,7 +2136,7 @@ namespace IMGUIZMO_NAMESPACE
       return modified;
    }
 
-   static bool HandleScale(float* matrix, float* deltaMatrix, OPERATION op, int& type, const float* snap)
+   static bool HandleScale(float* matrix, float* deltaMatrix, OPERATION op, int& type, float snap=0.0f)
    {
       if((!Intersects(op, SCALE) && !Intersects(op, SCALEU)) || type != MT_NONE || !gContext.mbMouseOver)
       {
@@ -2200,10 +2200,9 @@ namespace IMGUIZMO_NAMESPACE
          }
 
          // snap
-         if (snap)
+         if (snap > 0.0f)
          {
-            float scaleSnap[] = { snap[0], snap[0], snap[0] };
-            ComputeSnap(gContext.mScale, scaleSnap);
+            ComputeSnap(gContext.mScale, snap);
          }
 
          // no 0 allowed
@@ -2249,7 +2248,7 @@ namespace IMGUIZMO_NAMESPACE
       return modified;
    }
 
-   static bool HandleRotation(float* matrix, float* deltaMatrix, OPERATION op, int& type, const float* snap)
+   static bool HandleRotation(float* matrix, float* deltaMatrix, OPERATION op, int& type, float snap)
    {
       if(!Intersects(op, ROTATE) || type != MT_NONE || !gContext.mbMouseOver)
       {
@@ -2301,9 +2300,9 @@ namespace IMGUIZMO_NAMESPACE
       {
          ImGui::CaptureMouseFromApp();
          gContext.mRotationAngle = ComputeAngleOnPlan();
-         if (snap)
+         if (snap > 0.0f)
          {
-            float snapInRadian = snap[0] * DEG2RAD;
+            float snapInRadian = snap * DEG2RAD;
             ComputeSnap(&gContext.mRotationAngle, snapInRadian);
          }
          vec_t rotationAxisLocalSpace;
@@ -2409,6 +2408,8 @@ namespace IMGUIZMO_NAMESPACE
      gContext.mAllowAxisFlip = value;
    }
 
+   void StopUsing() { gContext.mbUsing = false; }
+
    bool Manipulate(const float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float* deltaMatrix, const float* snap, const float* localBounds, const float* boundsSnap)
    {
       // Scale is always local or matrix will be skewed when applying world scale or oriented matrix
@@ -2435,9 +2436,9 @@ namespace IMGUIZMO_NAMESPACE
       {
          if (!gContext.mbUsingBounds)
          {
-            manipulated = HandleTranslation(matrix, deltaMatrix, operation, type, snap) ||
-                          HandleScale(matrix, deltaMatrix, operation, type, snap) ||
-                          HandleRotation(matrix, deltaMatrix, operation, type, snap);
+            manipulated = HandleTranslation(matrix, deltaMatrix, operation, type, snap ? snap[0] : 0.0f) ||
+                          HandleRotation(matrix, deltaMatrix, operation, type, snap ? snap[1] : 0.0f) ||
+                          HandleScale(matrix, deltaMatrix, operation, type, snap ? snap[2] : 0.0f);
          }
       }
 
