@@ -3033,7 +3033,7 @@ namespace IMGUIZMO_NAMESPACE
             out[0] = 1.f - (float)cx;
             out[1] = 1.f - (float)cy;
             out[2] = 1.f - (float)cz;
-            printf("VIEW TARGET: %0.2f, %0.2f, %0.2f\n", out[0], out[1], out[2]);
+            // printf("VIEW TARGET: %0.2f, %0.2f, %0.2f\n", out[0], out[1], out[2]);
             changed = true;
          }
          isClicking = false;
