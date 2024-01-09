@@ -1214,9 +1214,11 @@ namespace IMGUIZMO_NAMESPACE
 
       cameraToModelNormalized.TransformVector(gContext.mModelInverse);
 
-      gContext.mRadiusSquareCenter = screenRotateSize * gContext.mHeight;
-
       bool hasRSC = Intersects(op, ROTATE_SCREEN);
+      bool updateRadius = hasRSC && !gContext.mbUsing;
+
+      if (updateRadius) gContext.mRadiusSquareCenter = 0;
+
       for (int axis = 0; axis < 3; axis++)
       {
          if(!Intersects(op, static_cast<OPERATION>(ROTATE_Z >> axis)))
@@ -1242,10 +1244,9 @@ namespace IMGUIZMO_NAMESPACE
             drawList->AddPolyline(circlePos, circleMul* halfCircleSegmentCount + 1, colors[3 - axis], false, 2 * gContext.mGizmoLineThickness);
          }
 
-         float radiusAxis = sqrtf((ImLengthSqr(worldToPos(gContext.mModel.v.position, gContext.mViewProjection) - circlePos[0])));
-         if (radiusAxis > gContext.mRadiusSquareCenter)
-         {
-            gContext.mRadiusSquareCenter = radiusAxis;
+         if (updateRadius) {
+            float radiusAxis = sqrtf((ImLengthSqr(worldToPos(gContext.mModel.v.position, gContext.mViewProjection) - circlePos[0])));
+            if (radiusAxis > gContext.mRadiusSquareCenter) gContext.mRadiusSquareCenter = 1.1 * radiusAxis;
          }
       }
       if(hasRSC && (!gContext.mbUsing || type == MT_ROTATE_SCREEN))
@@ -1258,6 +1259,8 @@ namespace IMGUIZMO_NAMESPACE
       {
          ImVec2 circlePos[halfCircleSegmentCount + 1];
 
+         float scale = type == MT_ROTATE_SCREEN ? 1.1f : 1.0f;
+
          circlePos[0] = worldToPos(gContext.mModel.v.position, gContext.mViewProjection);
          for (unsigned int i = 1; i < halfCircleSegmentCount; i++)
          {
@@ -1266,7 +1269,7 @@ namespace IMGUIZMO_NAMESPACE
             rotateVectorMatrix.RotationAxis(gContext.mTranslationPlan, ng);
             vec_t pos;
             pos.TransformPoint(gContext.mRotationVectorSource, rotateVectorMatrix);
-            pos *= gContext.mScreenFactor * rotationDisplayFactor;
+            pos *= scale * gContext.mScreenFactor * rotationDisplayFactor;
             circlePos[i] = worldToPos(pos + gContext.mModel.v.position, gContext.mViewProjection);
          }
          drawList->AddConvexPolyFilled(circlePos, halfCircleSegmentCount, IM_COL32(0xFF, 0x80, 0x10, 0x80));
@@ -1957,6 +1960,11 @@ namespace IMGUIZMO_NAMESPACE
          const vec_t intersectWorldPos = gContext.mRayOrigin + gContext.mRayVector * len;
          vec_t intersectViewPos;
          intersectViewPos.TransformPoint(intersectWorldPos, gContext.mViewMat);
+
+         if (Intersects(op, ROTATE_SCREEN) && ImAbs(modelViewPos.z) - ImAbs(intersectViewPos.z) < -FLT_EPSILON)
+         {
+            continue;
+         }
 
          const vec_t localPos = intersectWorldPos - gContext.mModel.v.position;
          vec_t idealPosOnCircle = Normalized(localPos);
